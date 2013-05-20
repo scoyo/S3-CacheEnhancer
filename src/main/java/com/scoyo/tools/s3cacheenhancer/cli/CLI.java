@@ -20,6 +20,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
 import com.scoyo.tools.s3cacheenhancer.S3HeaderEnhancer;
 
 /**
@@ -30,7 +31,14 @@ public class CLI {
     public static void main(String[] args) {
         // parse the commandline arguments
         HeaderEnhancerArguments arguments = new HeaderEnhancerArguments();
-        new JCommander(arguments, args);
+        JCommander jCommander = new JCommander(arguments);
+        jCommander.setProgramName("java -jar S3-CacheEnhancer-1.0.0-SNAPSHOT-jar-with-dependencies.jar");
+        try {
+            jCommander.parse(args);
+        } catch (ParameterException ex) {
+            jCommander.usage();
+            System.exit(1);
+        }
 
         S3HeaderEnhancer enhancer = buildS3HeaderEnhancer(arguments);
         enhancer.createCacheHeaders();
