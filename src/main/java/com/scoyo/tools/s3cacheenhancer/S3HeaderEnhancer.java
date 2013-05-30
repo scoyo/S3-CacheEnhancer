@@ -61,6 +61,9 @@ public class S3HeaderEnhancer {
             }
             if (!maxAgeHeader.equals(metadata.getCacheControl())) {
                  metadata.setCacheControl(maxAgeHeader);
+            } else {
+                System.out.println("Skipping " + key);
+                continue;
             }
 
             AccessControlList acl = s3.getObjectAcl(summary.getBucketName(), summary.getKey());
