@@ -18,6 +18,7 @@ package com.scoyo.tools.s3cacheenhancer;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.CopyObjectResult;
 import com.amazonaws.services.s3.model.ObjectListing;
@@ -51,8 +52,13 @@ public class S3HeaderEnhancer {
             String bucket = summary.getBucketName();
             String key = summary.getKey();
 
-
-            ObjectMetadata metadata = s3.getObjectMetadata(bucket, key);
+            ObjectMetadata metadata = null;
+            try {
+                metadata = s3.getObjectMetadata(bucket, key);
+            } catch (AmazonS3Exception exception) {
+                System.out.println("Could not update " + key + " [" + exception.getMessage() + "]");
+                continue;
+            }
             if (!maxAgeHeader.equals(metadata.getCacheControl())) {
                  metadata.setCacheControl(maxAgeHeader);
             }
