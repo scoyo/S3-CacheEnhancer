@@ -37,7 +37,7 @@ public class S3HeaderEnhancer {
     }
 
     public void createCacheHeaders() throws AmazonClientException {
-        String maxAgeHeader = "max-age=" + maxAge;
+        String maxAgeHeader = "public, max-age=" + maxAge;
         ObjectListing listing = s3.listObjects(bucketName);
         setHeaders(listing, maxAgeHeader);
         while (listing.isTruncated()) {
