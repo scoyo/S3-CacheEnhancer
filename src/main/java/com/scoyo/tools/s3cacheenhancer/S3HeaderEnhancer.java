@@ -80,7 +80,7 @@ public class S3HeaderEnhancer {
             if (!maxAgeHeader.equals(metadata.getCacheControl())) {
                  metadata.setCacheControl(maxAgeHeader);
             } else {
-                System.out.println("Skipping because header already correct" + key);
+                System.out.println("Skipping because header is already correct " + key);
                 continue;
             }
 
