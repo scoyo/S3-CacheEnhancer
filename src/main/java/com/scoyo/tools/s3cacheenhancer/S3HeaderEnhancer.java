@@ -71,10 +71,16 @@ public class S3HeaderEnhancer {
                 System.out.println("Could not update " + key + " [" + exception.getMessage() + "]");
                 continue;
             }
+
+            if ("application/x-directory".equals(metadata.getContentType())) {
+                System.out.println("Skipping because content-type " + key);
+                continue;
+            }
+
             if (!maxAgeHeader.equals(metadata.getCacheControl())) {
                  metadata.setCacheControl(maxAgeHeader);
             } else {
-                System.out.println("Skipping " + key);
+                System.out.println("Skipping because header already correct" + key);
                 continue;
             }
 
