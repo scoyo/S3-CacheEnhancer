@@ -34,4 +34,7 @@ public class HeaderEnhancerArguments {
     @Parameter(names = {"-ma", "--maxAge"}, description = "value for max-age")
     public Integer maxAge = Integer.MIN_VALUE;
 
+    @Parameter(names = {"-p", "--prefix"}, description = "prefix for S3 objects in bucket")
+    public String prefix = null;
+
 }

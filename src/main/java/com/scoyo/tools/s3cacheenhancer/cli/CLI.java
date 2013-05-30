@@ -48,7 +48,7 @@ public class CLI {
     private static S3HeaderEnhancer buildS3HeaderEnhancer(HeaderEnhancerArguments arguments) {
         AWSCredentials credentials = new BasicAWSCredentials(arguments.awsAccessKey, arguments.awsSecretKey);
         AmazonS3 s3 = new AmazonS3Client(credentials);
-        S3HeaderEnhancer enhancer = new S3HeaderEnhancer(s3, arguments.bucketName);
+        S3HeaderEnhancer enhancer = new S3HeaderEnhancer(s3, arguments.bucketName, arguments.prefix);
 
         if (arguments.maxAge != null && Integer.MIN_VALUE != arguments.maxAge.intValue()) {
             enhancer.setMaxAge(arguments.maxAge);

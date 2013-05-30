@@ -29,16 +29,28 @@ public class S3HeaderEnhancer {
 
     private final AmazonS3 s3;
     private final String bucketName;
+    private final String prefix;
     private int maxAge = 94608000;
 
     public S3HeaderEnhancer(AmazonS3 s3, String bucketName) {
+        this(s3, bucketName, null);
+    }
+
+    public S3HeaderEnhancer(AmazonS3 s3, String bucketName, String prefix) {
         this.bucketName = bucketName;
         this.s3 = s3;
+        this.prefix = prefix;
     }
 
     public void createCacheHeaders() throws AmazonClientException {
         String maxAgeHeader = "public, max-age=" + maxAge;
-        ObjectListing listing = s3.listObjects(bucketName);
+        ObjectListing listing = null;
+        if (prefix == null) {
+            listing = s3.listObjects(bucketName);
+        } else {
+            listing = s3.listObjects(bucketName, prefix);
+        }
+
         setHeaders(listing, maxAgeHeader);
         while (listing.isTruncated()) {
             listing = s3.listNextBatchOfObjects(listing);
