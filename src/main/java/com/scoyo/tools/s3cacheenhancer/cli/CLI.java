@@ -50,8 +50,11 @@ public class CLI {
         AmazonS3 s3 = new AmazonS3Client(credentials);
         S3HeaderEnhancer enhancer = new S3HeaderEnhancer(s3, arguments.bucketName, arguments.prefix);
 
-        if (arguments.maxAge != null && Integer.MIN_VALUE != arguments.maxAge.intValue()) {
+        if (arguments.maxAge != null) {
             enhancer.setMaxAge(arguments.maxAge);
+        }
+        if (arguments.maxThreads != null) {
+            enhancer.setMaxThreads(arguments.maxThreads.intValue());
         }
         return enhancer;
     }

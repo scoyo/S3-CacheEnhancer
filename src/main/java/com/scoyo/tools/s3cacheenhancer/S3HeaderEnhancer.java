@@ -25,12 +25,18 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 public class S3HeaderEnhancer {
 
     private final AmazonS3 s3;
     private final String bucketName;
     private final String prefix;
     private int maxAge = 94608000;
+    private int maxThreads = 10;
 
     public S3HeaderEnhancer(AmazonS3 s3, String bucketName) {
         this(s3, bucketName, null);
@@ -43,6 +49,15 @@ public class S3HeaderEnhancer {
     }
 
     public void createCacheHeaders() throws AmazonClientException {
+
+        ExecutorService executorService =  new ThreadPoolExecutor(
+                maxThreads, // core thread pool size
+                maxThreads, // maximum thread pool size
+                1, // time to wait before resizing pool
+                TimeUnit.MINUTES.MINUTES,
+                new ArrayBlockingQueue<Runnable>(maxThreads, true),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+
         String maxAgeHeader = "public, max-age=" + maxAge;
         ObjectListing listing = null;
         if (prefix == null) {
@@ -51,52 +66,65 @@ public class S3HeaderEnhancer {
             listing = s3.listObjects(bucketName, prefix);
         }
 
-        setHeaders(listing, maxAgeHeader);
+        setHeaders(listing, maxAgeHeader, executorService);
         while (listing.isTruncated()) {
             listing = s3.listNextBatchOfObjects(listing);
-            setHeaders(listing, maxAgeHeader);
+            setHeaders(listing, maxAgeHeader, executorService);
+        }
+
+        executorService.shutdown();
+
+        try {
+            executorService.awaitTermination(5, TimeUnit.MINUTES);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
-    private void setHeaders(ObjectListing listing, String maxAgeHeader) {
+    private void setHeaders(ObjectListing listing, final String maxAgeHeader, ExecutorService executorService) {
 
-        for (S3ObjectSummary summary : listing.getObjectSummaries()) {
-            String bucket = summary.getBucketName();
-            String key = summary.getKey();
+        for (final S3ObjectSummary summary : listing.getObjectSummaries()) {
+            executorService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    String bucket = summary.getBucketName();
+                    String key = summary.getKey();
 
-            ObjectMetadata metadata = null;
-            try {
-                metadata = s3.getObjectMetadata(bucket, key);
-            } catch (AmazonS3Exception exception) {
-                System.out.println("Could not update " + key + " [" + exception.getMessage() + "]");
-                continue;
-            }
+                    ObjectMetadata metadata = null;
+                    try {
+                        metadata = s3.getObjectMetadata(bucket, key);
+                    } catch (AmazonS3Exception exception) {
+                        System.out.println("Could not update " + key + " [" + exception.getMessage() + "]");
+                        return;
+                    }
 
-            if ("application/x-directory".equals(metadata.getContentType())) {
-                System.out.println("Skipping because content-type " + key);
-                continue;
-            }
+                    if ("application/x-directory".equals(metadata.getContentType())) {
+                        System.out.println("Skipping because content-type " + key);
+                        return;
+                    }
 
-            if (!maxAgeHeader.equals(metadata.getCacheControl())) {
-                 metadata.setCacheControl(maxAgeHeader);
-            } else {
-                System.out.println("Skipping because header is already correct " + key);
-                continue;
-            }
+                    if (!maxAgeHeader.equals(metadata.getCacheControl())) {
+                        metadata.setCacheControl(maxAgeHeader);
+                    } else {
+                        System.out.println("Skipping because header is already correct " + key);
+                        return;
+                    }
 
-            AccessControlList acl = s3.getObjectAcl(summary.getBucketName(), summary.getKey());
+                    AccessControlList acl = s3.getObjectAcl(summary.getBucketName(), summary.getKey());
 
-            CopyObjectRequest copyReq = new CopyObjectRequest(bucket, key, bucket, key)
-                    .withAccessControlList(acl)
-                    .withNewObjectMetadata(metadata);
+                    CopyObjectRequest copyReq = new CopyObjectRequest(bucket, key, bucket, key)
+                            .withAccessControlList(acl)
+                            .withNewObjectMetadata(metadata);
 
-            CopyObjectResult result = s3.copyObject(copyReq);
+                    CopyObjectResult result = s3.copyObject(copyReq);
 
-            if (result != null) {
-                System.out.println("Updated " + key);
-            } else {
-                System.out.println("Could not update " + key);
-            }
+                    if (result != null) {
+                        System.out.println("Updated " + key);
+                    } else {
+                        System.out.println("Could not update " + key);
+                    }
+                }
+            });
         }
     }
 
@@ -110,6 +138,18 @@ public class S3HeaderEnhancer {
             throw new IllegalArgumentException("maxAge must be positive.");
         }
         this.maxAge = maxAge;
+    }
+
+    /**
+     * The maxmimum size of the the ThreadPool to use.
+     * Defaults to 10.
+     * @param maxThreads see above, must be at least 1
+     */
+    public void setMaxThreads(int maxThreads) {
+        if (maxThreads < 1) {
+            throw new IllegalArgumentException("maxThreads must be >= 1.");
+        }
+        this.maxThreads = maxThreads;
     }
 
 

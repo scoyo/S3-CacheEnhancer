@@ -32,9 +32,11 @@ public class HeaderEnhancerArguments {
     public String awsSecretKey;
 
     @Parameter(names = {"-ma", "--maxAge"}, description = "value for max-age")
-    public Integer maxAge = Integer.MIN_VALUE;
+    public Integer maxAge;
 
     @Parameter(names = {"-p", "--prefix"}, description = "prefix for S3 objects in bucket")
     public String prefix = null;
 
+    @Parameter(names = {"-t", "--maxThreads"}, description = "max number of Threads to use")
+    public Integer maxThreads;
 }
