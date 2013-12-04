@@ -54,7 +54,7 @@ public class S3HeaderEnhancer {
                 maxThreads, // core thread pool size
                 maxThreads, // maximum thread pool size
                 1, // time to wait before resizing pool
-                TimeUnit.MINUTES.MINUTES,
+                TimeUnit.MINUTES,
                 new ArrayBlockingQueue<Runnable>(maxThreads, true),
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
